@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-
+use Illuminate\Support\Facades\Gate;
 use App\Models\Chirp;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -19,7 +19,10 @@ class ChirpController extends Controller
     {
         return view('chirps.index',
         [
-            'chirps' => Chirp::where('user_id', auth()->id())->latest()->get(),
+            'chirps' => Chirp::with('user')->latest()->get(),
+            
+        // To filter the return data based on user id of the current user  
+            // 'chirps' => Chirp::where('user_id', auth()->id())->latest()->get(),            
         ]
     );
     }
@@ -57,17 +60,32 @@ class ChirpController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Chirp $chirp)
+    public function edit(Chirp $chirp): View
     {
         //
+
+        Gate::authorize('update', $chirp);
+        return view('chirps.edit', [
+
+            'chirp' => $chirp,
+
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Chirp $chirp)
+    public function update(Request $request, Chirp $chirp): RedirectResponse
     {
-        //
+        Gate::authorize('update', $chirp);
+
+        $validated = $request->validate([
+            'message' => 'required|string|max:255',
+        ]);
+
+        $chirp->update($validated);
+
+        return redirect(route('chirps.index'));
     }
 
     /**
